@@ -28,6 +28,11 @@ def dat():
 
 
 @reactive.calc
+def size():
+    return data.get()["Nome"].size
+
+
+@reactive.calc
 def currentRow():
     return data.get().iloc[select.get()]
 
@@ -53,7 +58,7 @@ with ui.navset_card_underline():
             @render.ui
             def progress():
                 return ui.input_slider(
-                    "slider", "", 0, dat()["Nome"].size, select.get(), width="100%"
+                    "slider", "", 0, size() - 1, select.get(), width="100%"
                 )
 
             with ui.layout_columns():
@@ -84,7 +89,7 @@ with ui.navset_card_underline():
                         return [
                             ui.markdown(f"""## {currentRow()[0]}"""),
                             ui.markdown(
-                                f"""### INEP:[{currentRow()['CO_ENTIDADE']}](https://qedu.org.br/api/search/?text={currentRow()['CO_ENTIDADE']})"""
+                                f"""### INEP:[{currentRow()['CO_ENTIDADE']}](https://qedu.org.br/escola/{currentRow()['CO_ENTIDADE']}-{currentRow()['NO_ENTIDADE'].replace(' ','-')})"""
                             ),
                             ui.markdown(f"""{currentRow()['NO_ENTIDADE']}"""),
                         ]
@@ -105,7 +110,7 @@ with ui.navset_card_underline():
                             ui.input_text(
                                 "name",
                                 "Nome da Escola",
-                                value=f"""{currentRow()['Nome']}""",
+                                value=f"""{currentRow()['NO_ENTIDADE']}""",
                             ),
                             ui.input_select(
                                 "city",
@@ -227,7 +232,7 @@ def save():
     d = data.get()
     d.loc[select.get(), "Verificada"] = "S" if input.resp.get() else "N"
     d.loc[select.get(), "Respons"] = input.respons.get()
-    
+
     lat, long = input.lat.get().split(", ")
     d.loc[select.get(), "Lat"] = lat
     d.loc[select.get(), "Long"] = long
@@ -252,28 +257,34 @@ def save():
 
 
 @reactive.effect
-@reactive.event(input.save, ignore_none=False)
+@reactive.event(input.save, ignore_none=True)
 def x():
     print("Pressed")
     save()
 
 
 @reactive.effect
-@reactive.event(input.go, ignore_none=False)
+@reactive.event(input.go, ignore_none=True)
 def go_map():
-    select.set(select.get() + 1)
+    trg = select.get() + 1
+    if trg >= size():
+        trg = 0
+    select.set(trg)
     frame.cell_selection()["rows"] = select
 
 
 @reactive.effect
-@reactive.event(input.back, ignore_none=False)
+@reactive.event(input.back, ignore_none=True)
 def back_map():
-    select.set(select.get() - 1)
+    trg = select.get() - 1
+    if trg < 0:
+        trg = size() - 1
+    select.set(trg)
     frame.cell_selection()["rows"] = select
 
 
 @reactive.effect
-@reactive.event(input.slider, ignore_none=False)
+@reactive.event(input.slider, ignore_none=True)
 def sld():
     select.set(input.slider.get())
     frame.cell_selection()["rows"] = select
